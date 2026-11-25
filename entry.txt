@@ -1,0 +1,1 @@
+v2.4.1: Fixed bug where lying awake at 3 AM replayed every conversation since 2009. Root cause: memory. Won't fix: memory.
