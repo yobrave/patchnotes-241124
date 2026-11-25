@@ -1,1 +1,2 @@
-v42.0.3: Patched the 3 AM bug where the brain replays every awkward moment since 2009. Partially effective — replays now stream in HD.
+v2.6.1 — Fixed: lying awake at 3 a.m. replaying conversations from 2009. Hotfix was urgent. Replying 'hmm' to emails still broken.
+

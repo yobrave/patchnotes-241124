@@ -1,27 +1,42 @@
-"""Patch notes for the human build, versioned and shipped."""
+import json
 import os
 
-CHANGELOG = ("v42.0.3: Patched the 3 AM bug where the brain replays "
-             "every awkward moment since 2009. Partially effective — "
-             "replays now stream in HD.")
-BUILD = "ptc2"
-CHANNEL = "nightly"
-KNOWN = "1 (humans)"
+BUILD = "ptc3-v2-6-1"
+TONE = 160
 
 
-def ship(base):
-    base = base or "output"
-    os.makedirs(base, exist_ok=True)
-    p = os.path.join(base, "entry.txt")
-    with open(p, "w", encoding="utf-8", newline="\n") as f:
-        f.write(CHANGELOG + "\n")
-    with open(p, "rb") as f:
-        blob = f.read()
-    return blob.decode("utf-8").strip(), len(blob)
+def notes(blob):
+    for row in blob.replace("\r", "").splitlines():
+        if row.strip():
+            return row
+    return ""
 
 
-note, size = ship(os.environ.get("MAKEFUN_OUTPUT_DIR"))
-if note != CHANGELOG:
-    raise SystemExit("rollback initiated")
-print(BUILD, CHANNEL, size, "bytes shipped")
-print("known issues:", KNOWN, "wontfix")
+def lint(line):
+    return line.strip() == line and 1 <= len(line) <= TONE
+
+
+def release(line, root):
+    depot = os.environ.get("MAKEFUN_OUTPUT_DIR") or os.path.join(root, "output")
+    os.makedirs(depot, exist_ok=True)
+    final = os.path.join(depot, "entry.txt")
+    staging = final + ".staging"
+    ink = line.encode("utf-8")
+    with open(staging, "wb") as tagger:
+        tagger.write(ink)
+    os.replace(staging, final)
+    with open(final, "rb") as verifier:
+        if verifier.read() != ink:
+            raise RuntimeError("release artifact drifted")
+    return final
+
+
+root = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(root, "entry.txt"), encoding="utf-8") as repo_log:
+    line = notes(repo_log.read())
+
+if not lint(line):
+    print(json.dumps({"release": "blocked", "size": len(line)}))
+    raise SystemExit(1)
+final = release(line, root)
+print(json.dumps({"release": "shipped", "size": len(line), "build": BUILD, "artifact": os.path.basename(final)}))
